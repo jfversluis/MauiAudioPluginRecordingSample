@@ -1,24 +1,39 @@
-﻿namespace MauiAudioPluginRecordingSample
+﻿using Plugin.Maui.Audio;
+
+namespace MauiAudioPluginRecordingSample
 {
     public partial class MainPage : ContentPage
     {
-        int count = 0;
+        readonly IAudioManager _audioManager;
+        readonly IAudioRecorder _audioRecorder;
 
-        public MainPage()
+        public MainPage(IAudioManager audioManager)
         {
             InitializeComponent();
+
+            _audioManager = audioManager;
+            _audioRecorder = audioManager.CreateRecorder();
         }
 
-        private void OnCounterClicked(object sender, EventArgs e)
+        private async void OnCounterClicked(object sender, EventArgs e)
         {
-            count++;
+            if (await Permissions.RequestAsync<Permissions.Microphone>() != PermissionStatus.Granted)
+            { 
+                // TODO Inform your user
+                return; 
+            }
 
-            if (count == 1)
-                CounterBtn.Text = $"Clicked {count} time";
+            if (!_audioRecorder.IsRecording)
+            {
+                await _audioRecorder.StartAsync();
+            }
             else
-                CounterBtn.Text = $"Clicked {count} times";
+            {
+                var recordedAudio = await _audioRecorder.StopAsync();
 
-            SemanticScreenReader.Announce(CounterBtn.Text);
+                var player = AudioManager.Current.CreatePlayer(recordedAudio.GetAudioStream());
+                player.Play();
+            }
         }
     }
 
